@@ -1,0 +1,4309 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8' />
+    <title>Shell Retail</title>
+    <meta name='robots' content='noindex, nofollow'>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700' rel='stylesheet'>
+    <!-- Mapbox GL JS -->
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v1.10.1/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v1.10.1/mapbox-gl.css' rel='stylesheet' />
+    <!-- Geocoder plugin -->
+    <script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.5.1/mapbox-gl-geocoder.min.js'></script>
+    <link rel='stylesheet' href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.5.1/mapbox-gl-geocoder.css' type='text/css' />
+    <!-- Turf.js plugin -->
+    <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
+    <script src="https://npmcdn.com/@turf/turf@5.1.6/turf.min.js"></script>
+    <style>
+
+      body {
+        color:#404040;
+        font:400 20px/26px 'Source Sans Pro', 'Helvetica Neue', Sans-serif;
+        margin:0;
+        padding:0;
+        -webkit-font-smoothing:antialiased;
+      }
+
+      * {
+        -webkit-box-sizing:border-box;
+        -moz-box-sizing:border-box;
+        box-sizing:border-box;
+      }
+
+      .sidebar {
+        position:absolute;
+        width:33.333%;
+        height:100%;
+        top:0;left:0;
+        overflow:hidden;
+        border-right:1px solid rgba(0,0,0,0.25);
+      }
+      .pad2 {
+        padding:20px;
+      }
+
+      .map {
+        position:absolute;
+        left:33.333%;
+        width:66.666%;
+        top:0;bottom:0;
+      }
+
+      h1 {
+        font-size:22px;
+        margin:0;
+        font-weight:400;
+        line-height: 20px;
+        padding: 20px 2px;
+      }
+
+      a {
+        color:#404040;
+        text-decoration:none;
+      }
+
+      a:hover {
+        color:#101010;
+      }
+
+      .heading {
+        background:#fff;
+        border-bottom:1px solid #eee;
+        min-height:60px;
+        line-height:60px;
+        padding:0 20px;
+        background-color: #ffea00;
+        color: #f21d05;
+      }
+
+      .listings {
+        height:100%;
+        overflow:auto;
+        padding-bottom:60px;
+      }
+
+      .listings .item {
+        display:block;
+        border-bottom:1px solid #eee;
+        padding:10px;
+        text-decoration:none;
+      }
+
+      .listings .item:last-child { border-bottom:none; }
+      .listings .item .title {
+        display:block;
+        color:#f21d05;
+        font-weight:700;
+      }
+
+      .listings .item .title small { font-weight:400; }
+      .listings .item.active .title,
+      .listings .item .title:hover { color:#f21d05; }
+      .listings .item.active {
+        background-color:#ffea00;
+      }
+      ::-webkit-scrollbar {
+        width:3px;
+        height:3px;
+        border-left:0;
+        background:rgba(0,0,0,0.1);
+      }
+      ::-webkit-scrollbar-track {
+        background:none;
+      }
+      ::-webkit-scrollbar-thumb {
+        background:#ffea00;
+        border-radius:0;
+      }
+
+      .marker {
+        border: none;
+        cursor: pointer;
+        height: 56px;
+        width: 56px;
+        background-image: url(marker.png);
+        background-color: rgba(0, 0, 0, 0);
+      }
+
+      .clearfix { display:block; }
+      .clearfix:after {
+        content:'.';
+        display:block;
+        height:0;
+        clear:both;
+        visibility:hidden;
+      }
+
+      /* Marker tweaks */
+      .mapboxgl-popup {
+        padding-bottom: 10px;
+      }
+
+      .mapboxgl-popup-close-button {
+        display:none;
+      }
+      .mapboxgl-popup-content {
+        font:400 15px/22px 'Source Sans Pro', 'Helvetica Neue', Sans-serif;
+        padding:0;
+        width:180px;
+      }
+      .mapboxgl-popup-content-wrapper {
+        padding:1%;
+      }
+      .mapboxgl-popup-content h3 {
+        background:#ffea00;
+        color:#f21d05;
+        margin:0;
+        display:block;
+        padding:10px;
+        border-radius:3px 3px 0 0;
+        font-weight:700;
+        margin-top:-15px;
+      }
+
+      .mapboxgl-popup-content h4 {
+        margin:0;
+        display:block;
+        padding: 10px 10px 10px 10px;
+        font-weight:400;
+      }
+      .mapboxgl-popup-content h5 {
+        margin:0;
+        display:block;
+        padding: 10px 10px 10px 10px;
+        font-weight:400;
+      }
+
+      .mapboxgl-popup-content div {
+        padding:10px;
+      }
+
+      .mapboxgl-container .leaflet-marker-icon {
+        cursor:pointer;
+      }
+
+      .mapboxgl-popup-anchor-top > .mapboxgl-popup-content {
+        margin-top: 15px;
+      }
+
+      .mapboxgl-popup-anchor-top > .mapboxgl-popup-tip {
+        border-bottom-color: #91c949;
+      }
+
+      .mapboxgl-ctrl-geocoder {
+        border: 2px solid #00853e;
+        border-radius: 0;
+        position: relative;
+        top: 0;
+        width: 800px;
+        margin-top: 0;
+        border: 0;
+      }
+
+      .mapboxgl-ctrl-geocoder > div {
+        min-width:100%;
+        margin-left:0;
+      }
+      .distance-container {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 1;
+        }
+
+       .distance-container > * {
+        background-color: rgba(0, 0, 0, 0.5);
+        color: #fff;
+        font-size: 11px;
+        line-height: 18px;
+        display: block;
+        margin: 0;
+        padding: 5px 10px;
+        border-radius: 3px;
+      } </style>
+  </head>
+  <body>
+    <div class='sidebar'>
+      <div class='heading'>
+        <h1>Shell Stations</h1>
+      </div>
+      <div id='listings' class='listings'></div>
+    </div>
+    <div id='map' class='map'> </div>
+    <div id="map"></div>
+<div id="distance" class="distance-container"></div>
+ 
+<script src="https://npmcdn.com/@turf/turf@5.1.6/turf.min.js"></script>
+    <script>
+      /* This will let you use the .remove() function later on */
+      if (!('remove' in Element.prototype)) {
+        Element.prototype.remove = function() {
+          if (this.parentNode) {
+              this.parentNode.removeChild(this);
+          }
+        };
+      }
+
+      mapboxgl.accessToken = 'pk.eyJ1Ijoic2FyYWh5dW11bCIsImEiOiJja2FpOTltZW4wbnIzMzNvNDN4bTl0N3llIn0.o8QAY6R-Y4XyWCsOaq4d1Q';
+
+      /**
+       * Add the map to the page
+      */
+      var map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/sarahyumul/ckalfscw53u641ik4ha5c71ih',
+        center: [123.03531890136333,12.225982606776086],
+        zoom: 5,
+        scrollZoom: true
+      });
+
+      var stores = {
+        "type": "FeatureCollection",
+        "features": [
+          {
+            "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "5",
+        "measurement_method": "",
+        "loc_name": "SH A S FORTUNA WEST",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "123.9255027",
+        "y_coord": "10.33939423",
+        "param_unit": "",
+        "sys_loc_code": "SH A S FORTUNA WEST",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          123.925502,
+          10.339394
+        ],
+        "type": "Point"
+      },
+      "id": "0276ed4eecc2b1dddbb88cd64f11fbfb"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "118",
+        "measurement_method": "",
+        "loc_name": "SH SAN FRANCISCO NBOUND",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.031684",
+        "y_coord": "14.575001",
+        "param_unit": "",
+        "sys_loc_code": "SH SAN FRANCIS NBD",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.031684,
+          14.575001
+        ],
+        "type": "Point"
+      },
+      "id": "0371e871414faca699c6a28e96b4c37b"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "42",
+        "measurement_method": "",
+        "loc_name": "SH ESPANA EXT D TUAZON",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.004961",
+        "y_coord": "14.618236",
+        "param_unit": "",
+        "sys_loc_code": "SH ESPANA EXT D TUAZ",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.004961,
+          14.618236
+        ],
+        "type": "Point"
+      },
+      "id": "047dff8611f5f9f37a610da66753956c"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "22",
+        "measurement_method": "",
+        "loc_name": "SH BUNTUN HIWAY DIV TUGUE",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.705668",
+        "y_coord": "17.613836",
+        "param_unit": "",
+        "sys_loc_code": "SH BUNTUN HIWAY DIV",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.705668,
+          17.613836
+        ],
+        "type": "Point"
+      },
+      "id": "048d00b89246995a57a33a442ee35ed9"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "127",
+        "measurement_method": "",
+        "loc_name": "SH SIBULAN AIRPORT",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "123.294322",
+        "y_coord": "9.332682",
+        "param_unit": "",
+        "sys_loc_code": "SH SIBULAN AIRPORT",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          123.294322,
+          9.332682
+        ],
+        "type": "Point"
+      },
+      "id": "073cd9a87b21dd3ae84596937830680f"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "50",
+        "measurement_method": "",
+        "loc_name": "SH HAGKOL VALENCIA",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "125.0921716",
+        "y_coord": "7.9167599",
+        "param_unit": "",
+        "sys_loc_code": "SH HAGKOL VALENCIA",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          125.092171,
+          7.916759
+        ],
+        "type": "Point"
+      },
+      "id": "08cbe748981aedd120c199f34c31c19c"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "97",
+        "measurement_method": "",
+        "loc_name": "SH OUANO AVE NORTH",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "123.9287066",
+        "y_coord": "10.31641809",
+        "param_unit": "",
+        "sys_loc_code": "SH OUANO AVE NORTH",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          123.928706,
+          10.316418
+        ],
+        "type": "Point"
+      },
+      "id": "08fb93ba0a82fe720b42f8bc9c5b52d4"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "89",
+        "measurement_method": "",
+        "loc_name": "SH NIOG MOLINO BACOOR",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.9659851",
+        "y_coord": "14.44207013",
+        "param_unit": "",
+        "sys_loc_code": "SH NIOG MOLINO BACOO",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.965985,
+          14.44207
+        ],
+        "type": "Point"
+      },
+      "id": "0998b84ea6f4ddd9221e32701be8fdee"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "138",
+        "measurement_method": "",
+        "loc_name": "SH TAYUD CONSOLACION CEBU",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "123.972662",
+        "y_coord": "10.35342407",
+        "param_unit": "",
+        "sys_loc_code": "SH TAYUD CONSOLACION",
+        "param_text": "2VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          123.972662,
+          10.353424
+        ],
+        "type": "Point"
+      },
+      "id": "0b738b6d91ea948fc0048dd41715e0b0"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "115",
+        "measurement_method": "",
+        "loc_name": "SH S OSMENA T PADILLA",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "123.9104203",
+        "y_coord": "10.3019816",
+        "param_unit": "",
+        "sys_loc_code": "SH S OSMENA T PADILL",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          123.91042,
+          10.301981
+        ],
+        "type": "Point"
+      },
+      "id": "0de50d5f3685f7c06f8556f9fdd08873"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "29",
+        "measurement_method": "",
+        "loc_name": "SH CALICANTO BATNGAS CITY",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.0567993",
+        "y_coord": "13.7636193",
+        "param_unit": "",
+        "sys_loc_code": "SH CALICANTO BATNGAS",
+        "param_text": "2VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.056799,
+          13.763619
+        ],
+        "type": "Point"
+      },
+      "id": "0deab18b9f3c7c0584e6de85e68ae905"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "87",
+        "measurement_method": "",
+        "loc_name": "SH NAT L HWAY ALABANG VIA",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.0459036",
+        "y_coord": "14.41375437",
+        "param_unit": "",
+        "sys_loc_code": "SH NATL HWY ALABANG",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.045903,
+          14.413754
+        ],
+        "type": "Point"
+      },
+      "id": "122dc71f8f2c050084a4190946bcc9fe"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "92",
+        "measurement_method": "",
+        "loc_name": "SH OG RD GAPAN NUEVA ECJA DOSS",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.9378165",
+        "y_coord": "15.30366021",
+        "param_unit": "",
+        "sys_loc_code": "SH OG RD GAPAN NUEVA",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.937816,
+          15.30366
+        ],
+        "type": "Point"
+      },
+      "id": "12a30f59f01fdda3cefe45998662fc83"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "58",
+        "measurement_method": "",
+        "loc_name": "SH 12566647 SH KATIPUNAN MILAGROSA",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.07167",
+        "y_coord": "14.61858",
+        "param_unit": "",
+        "sys_loc_code": "SH KATIP MILAGROSA",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.07167,
+          14.61858
+        ],
+        "type": "Point"
+      },
+      "id": "1551c6ab8dfee5d6705e49a0572efbc5"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "62",
+        "measurement_method": "",
+        "loc_name": "SH LIGAO ALBAY",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "123.5392273",
+        "y_coord": "13.2405886",
+        "param_unit": "",
+        "sys_loc_code": "SH LIGAO ALBAY",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          123.539227,
+          13.240588
+        ],
+        "type": "Point"
+      },
+      "id": "187af34c4164773040b90bc6afd799ed"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "136",
+        "measurement_method": "",
+        "loc_name": "SH TAGUM NAT HWAY SB",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "125.807977",
+        "y_coord": "7.445835",
+        "param_unit": "",
+        "sys_loc_code": "SH TAGUM NAT HWAY SB",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          125.807977,
+          7.445835
+        ],
+        "type": "Point"
+      },
+      "id": "1d70391b5f774396c3e683d2d3c4e814"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "52",
+        "measurement_method": "",
+        "loc_name": "SH INOSLUBAN LIPA",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.1682631",
+        "y_coord": "13.99162447",
+        "param_unit": "",
+        "sys_loc_code": "SH INOSLUBAN LIPA",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.168263,
+          13.991624
+        ],
+        "type": "Point"
+      },
+      "id": "1edef3a585879d6d09401f3824dec585"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "30",
+        "measurement_method": "",
+        "loc_name": "SH CALUMPANG TAYABAS QZN",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.5525182",
+        "y_coord": "13.9718059",
+        "param_unit": "",
+        "sys_loc_code": "SH CALUMPANG TAYABAS",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.552518,
+          13.971805
+        ],
+        "type": "Point"
+      },
+      "id": "222b570b7b7a30ba9dbb1bdffe3e4e7c"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "143",
+        "measurement_method": "",
+        "loc_name": "SH VILLA SOLIMAN TARLAC",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.5968262",
+        "y_coord": "15.50782502",
+        "param_unit": "",
+        "sys_loc_code": "SH VILLA SOLIMAN TAR",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.596826,
+          15.507825
+        ],
+        "type": "Point"
+      },
+      "id": "22f575570419d216f0c8b6d0b651d06a"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "55",
+        "measurement_method": "",
+        "loc_name": "SH JP LAUREL LANANG GOLF",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "125.621779",
+        "y_coord": "7.097854",
+        "param_unit": "",
+        "sys_loc_code": "SH JP LAUREL LANANG",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          125.621779,
+          7.097854
+        ],
+        "type": "Point"
+      },
+      "id": "2cf0849d776e808c7ad758e3e154359b"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "86",
+        "measurement_method": "",
+        "loc_name": "SH NATL HWAY LAGUINDINGAN",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "124.4381977",
+        "y_coord": "8.5736413",
+        "param_unit": "",
+        "sys_loc_code": "SH NATL HWAY LAGUIND",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          124.438197,
+          8.573641
+        ],
+        "type": "Point"
+      },
+      "id": "2eec58d084eb4cb9f08aa253367513ef"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "34",
+        "measurement_method": "",
+        "loc_name": "SH DIGOS ORIGINAL DAVAO COSS.",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "125.3570255",
+        "y_coord": "6.7635928",
+        "param_unit": "",
+        "sys_loc_code": "SH DIGOS ORIGINAL DA",
+        "param_text": "2VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          125.357025,
+          6.763592
+        ],
+        "type": "Point"
+      },
+      "id": "2ef587b920fd199ed9176a192789ea45"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "19",
+        "measurement_method": "",
+        "loc_name": "SH BENIGNO AQUINO SM",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "122.551222",
+        "y_coord": "10.710078",
+        "param_unit": "",
+        "sys_loc_code": "SH BENIGNO AQUINO SM",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          122.551222,
+          10.710078
+        ],
+        "type": "Point"
+      },
+      "id": "2fe89bde9956919c70611d25c0364df3"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "35",
+        "measurement_method": "",
+        "loc_name": "SH DIVERSION MAMAY",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "125.627297",
+        "y_coord": "7.118432",
+        "param_unit": "",
+        "sys_loc_code": "SH DIVERSION MAMAY",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          125.627297,
+          7.118432
+        ],
+        "type": "Point"
+      },
+      "id": "30e11491f2817718687da11bcc867bd5"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "26",
+        "measurement_method": "",
+        "loc_name": "SH C5 JULIA VARGAS",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.076818",
+        "y_coord": "14.583193",
+        "param_unit": "",
+        "sys_loc_code": "SH C5 JULIA VARGAS",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.076818,
+          14.583193
+        ],
+        "type": "Point"
+      },
+      "id": "320286d160f7cfe779b177592ddc5902"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "11",
+        "measurement_method": "",
+        "loc_name": "SH AMANG RODRIGUEZ NORTH",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.0921169",
+        "y_coord": "14.61158096",
+        "param_unit": "",
+        "sys_loc_code": "SH AMANG RODRIGUEZ N",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.092116,
+          14.61158
+        ],
+        "type": "Point"
+      },
+      "id": "3271719823a09c9b6c5cec50ba378307"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "76",
+        "measurement_method": "",
+        "loc_name": "SH MCARTHUR DAU MABALACAT",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.5843228",
+        "y_coord": "15.18817903",
+        "param_unit": "",
+        "sys_loc_code": "SH MCARTHUR DAU MABA",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.584322,
+          15.188179
+        ],
+        "type": "Point"
+      },
+      "id": "3752fa26da0549a3e0c3a1f1b9bc44e8"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "33",
+        "measurement_method": "",
+        "loc_name": "SH CONCEPCION PEQUENA 2",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "123.2068061",
+        "y_coord": "13.62157591",
+        "param_unit": "",
+        "sys_loc_code": "SH CONCEPCION PEQUEN",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          123.206806,
+          13.621575
+        ],
+        "type": "Point"
+      },
+      "id": "3812ff14270049ec6c8359770aad3afe"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "1",
+        "measurement_method": "",
+        "loc_name": "CABANATUAN 3 MEGASHELL",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.975433",
+        "y_coord": "15.493431",
+        "param_unit": "",
+        "sys_loc_code": "CABANATUAN3 M.SHELL",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.975433,
+          15.493431
+        ],
+        "type": "Point"
+      },
+      "id": "38beba020401a5e0798e6395c7ea6cfe"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "70",
+        "measurement_method": "",
+        "loc_name": "SH MANILA EAST TAYTAY",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.1413655",
+        "y_coord": "14.56669893",
+        "param_unit": "",
+        "sys_loc_code": "SH MANILA EAST TAYTA",
+        "param_text": "3M",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.141365,
+          14.566698
+        ],
+        "type": "Point"
+      },
+      "id": "3921bfe68d15d5cc206bfa88424f1dbe"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "36",
+        "measurement_method": "",
+        "loc_name": "SH DONA AMPARO CALOOCAN",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.0777271",
+        "y_coord": "14.7451869",
+        "param_unit": "",
+        "sys_loc_code": "SH DONA AMPARO CALOO",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.077727,
+          14.745186
+        ],
+        "type": "Point"
+      },
+      "id": "3f2a944b201df4e08c28d0e39bd539ba"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "47",
+        "measurement_method": "",
+        "loc_name": "SH GEN SAN DRIVE KORONDAL",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "124.835729",
+        "y_coord": "6.507704",
+        "param_unit": "",
+        "sys_loc_code": "SH GEN SAN DRIVE KOR",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          124.835729,
+          6.507704
+        ],
+        "type": "Point"
+      },
+      "id": "4214ed8c96e261382a7ef74519f3a3b9"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "54",
+        "measurement_method": "",
+        "loc_name": "SH JP LAUREL HWAY MALVAR",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.157722",
+        "y_coord": "14.047773",
+        "param_unit": "",
+        "sys_loc_code": "SH JP LAUREL HWY MAL",
+        "param_text": "2VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.157722,
+          14.047773
+        ],
+        "type": "Point"
+      },
+      "id": "4313481aff8798c55a8ed0cc9be814ce"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "65",
+        "measurement_method": "",
+        "loc_name": "SH MAGALLANES DC DAVAO",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "125.604954",
+        "y_coord": "7.06601",
+        "param_unit": "",
+        "sys_loc_code": "SH MAGALLANES DC DAV",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          125.604954,
+          7.06601
+        ],
+        "type": "Point"
+      },
+      "id": "43b6733f9179b5ebeca175f9bbeb6ee6"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "134",
+        "measurement_method": "",
+        "loc_name": "SH TAGAPO STA ROSA",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.0979216",
+        "y_coord": "14.31778006",
+        "param_unit": "",
+        "sys_loc_code": "SH TAGAPO STA ROSA",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.097921,
+          14.31778
+        ],
+        "type": "Point"
+      },
+      "id": "443bdcb7e9fddb6579635cf3db598f15"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "31",
+        "measurement_method": "",
+        "loc_name": "SH CARMONA BINAN",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.0742279",
+        "y_coord": "14.32996235",
+        "param_unit": "",
+        "sys_loc_code": "SH CARMONA BINAN",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.074227,
+          14.329962
+        ],
+        "type": "Point"
+      },
+      "id": "453ab5a2ca78ebd541961cc7c654f32f"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "72",
+        "measurement_method": "",
+        "loc_name": "SH MARCOS HWAY ANTIPOLO",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.108053",
+        "y_coord": "14.621586",
+        "param_unit": "",
+        "sys_loc_code": "SH MARCOS HWAY ANTIP",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.108053,
+          14.621586
+        ],
+        "type": "Point"
+      },
+      "id": "45c2bdeb9d24ade41f597299a280957a"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "132",
+        "measurement_method": "",
+        "loc_name": "SH SUSANO EDEN NOVALICHES",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.0361354",
+        "y_coord": "14.73123039",
+        "param_unit": "",
+        "sys_loc_code": "SH SUSANO EDEN NOVAL",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.036135,
+          14.73123
+        ],
+        "type": "Point"
+      },
+      "id": "4659f6d152c796a1a1ffb4ab03421ad8"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "20",
+        "measurement_method": "",
+        "loc_name": "SH BINAKAYAN KAWIT",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.9256626",
+        "y_coord": "14.4502992",
+        "param_unit": "",
+        "sys_loc_code": "SH BINAKAYAN KAWIT",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.925662,
+          14.450299
+        ],
+        "type": "Point"
+      },
+      "id": "4693386d515b27f8574c8958b099cc97"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "110",
+        "measurement_method": "",
+        "loc_name": "SH QUEZON REYES KALIBO",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "122.367544",
+        "y_coord": "11.70154",
+        "param_unit": "",
+        "sys_loc_code": "SH QUEZON REYES KALI",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          122.367544,
+          11.70154
+        ],
+        "type": "Point"
+      },
+      "id": "48d131a623d524be4a90c5c64e8d8a2c"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "17",
+        "measurement_method": "",
+        "loc_name": "SH AURORA RUIZ SAN JUAN",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.0254352",
+        "y_coord": "14.61024364",
+        "param_unit": "",
+        "sys_loc_code": "SH AURORA RUIZ SAN J",
+        "param_text": "3M",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.025435,
+          14.610243
+        ],
+        "type": "Point"
+      },
+      "id": "4f6bc2f0ff4893dc607a59e059f995d1"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "38",
+        "measurement_method": "",
+        "loc_name": "SH DUMAGUETE SO RD MAGNAO",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "123.297817",
+        "y_coord": "9.292369",
+        "param_unit": "",
+        "sys_loc_code": "SH DUMAGUETE SO RD M",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          123.297817,
+          9.292369
+        ],
+        "type": "Point"
+      },
+      "id": "4fe809d8b3d076e6f1a1c893230bf086"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "64",
+        "measurement_method": "",
+        "loc_name": "SH MAA DAVAO CITY",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "125.582737",
+        "y_coord": "7.080048",
+        "param_unit": "",
+        "sys_loc_code": "SH MAA DAVAO CITY",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          125.582737,
+          7.080048
+        ],
+        "type": "Point"
+      },
+      "id": "513e5178873d4c6f8d237ebd95b7ea68"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "85",
+        "measurement_method": "",
+        "loc_name": "SH NAT HWAY GUSA EB",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "124.677014",
+        "y_coord": "8.476916",
+        "param_unit": "",
+        "sys_loc_code": "SH NAT HWAY GUSA EB",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          124.677014,
+          8.476916
+        ],
+        "type": "Point"
+      },
+      "id": "52f27388f411db44ce75abc91889b6df"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "39",
+        "measurement_method": "",
+        "loc_name": "SH DUTERTE LOMBOY CEBU",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "123.8775189",
+        "y_coord": "10.31236167",
+        "param_unit": "",
+        "sys_loc_code": "SH DUTERTE LOMBOY CE",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          123.877518,
+          10.312361
+        ],
+        "type": "Point"
+      },
+      "id": "54f752477d01e456283d696f1a22f810"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "83",
+        "measurement_method": "",
+        "loc_name": "SH NAGA RD PULANG LUPA",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.9915302",
+        "y_coord": "14.46218208",
+        "param_unit": "",
+        "sys_loc_code": "SH NAGA RD PULANG LU",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.99153,
+          14.462182
+        ],
+        "type": "Point"
+      },
+      "id": "55513d6869e29d0b9d04b9d3e8357397"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "130",
+        "measurement_method": "",
+        "loc_name": "SH STA CRUZ GUIGUINTO BUL",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.8612816",
+        "y_coord": "14.84254456",
+        "param_unit": "",
+        "sys_loc_code": "SH STA CRUZ GUIGUINT",
+        "param_text": "2VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.861281,
+          14.842544
+        ],
+        "type": "Point"
+      },
+      "id": "55c2cdfcf16426050064ae5d29d6ff9b"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "88",
+        "measurement_method": "",
+        "loc_name": "SH NB MCBRIONES MANDAUE",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "123.9288876",
+        "y_coord": "10.32681557",
+        "param_unit": "",
+        "sys_loc_code": "SH NB MCBRIONES MAND",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          123.928887,
+          10.326815
+        ],
+        "type": "Point"
+      },
+      "id": "5734b67a5d0971ccd27a7ac3e99e622a"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "43",
+        "measurement_method": "",
+        "loc_name": "SH F CABAHUG CEBU CITY",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "123.9157477",
+        "y_coord": "10.32486689",
+        "param_unit": "",
+        "sys_loc_code": "SH F CABAHUG CEBU CI",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          123.915747,
+          10.324866
+        ],
+        "type": "Point"
+      },
+      "id": "5913b85fca2176df753bd6734200fd63"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "4",
+        "measurement_method": "",
+        "loc_name": "SH A MABINI TANAUAN",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.1440209",
+        "y_coord": "14.08360744",
+        "param_unit": "",
+        "sys_loc_code": "SH A MABINI TANAUAN",
+        "param_text": "2VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.14402,
+          14.083607
+        ],
+        "type": "Point"
+      },
+      "id": "5b7d4f8af3bb4bca308509533a65147e"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "137",
+        "measurement_method": "",
+        "loc_name": "SH TANEDO MCARTHUR TARLAC",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.5966712",
+        "y_coord": "15.49590534",
+        "param_unit": "",
+        "sys_loc_code": "SH TANEDO MCARTHUR T",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.596671,
+          15.495905
+        ],
+        "type": "Point"
+      },
+      "id": "5ccf7d9dc2890b7149130c7c9408f118"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "75",
+        "measurement_method": "",
+        "loc_name": "SH MCARTHUR DALNDANAN VAL",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.959651",
+        "y_coord": "14.710774",
+        "param_unit": "",
+        "sys_loc_code": "SH MCARTHUR DALNDANA",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.959651,
+          14.710774
+        ],
+        "type": "Point"
+      },
+      "id": "5e62213fc3683d1ce5170f0c5d2d36a9"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "90",
+        "measurement_method": "",
+        "loc_name": "SH NLT1 NORTHBOUND BUL",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.9091161",
+        "y_coord": "14.83066559",
+        "param_unit": "",
+        "sys_loc_code": "SH NLT1 NORTHBOUND B",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.909116,
+          14.830665
+        ],
+        "type": "Point"
+      },
+      "id": "5f880ee57e5527f57e7e82b02af07634"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "71",
+        "measurement_method": "",
+        "loc_name": "SH MARCOS ALVAREZ VENICE",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.0033676",
+        "y_coord": "14.4300743",
+        "param_unit": "",
+        "sys_loc_code": "SH MARCOS ALVAREZ VE",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.003367,
+          14.430074
+        ],
+        "type": "Point"
+      },
+      "id": "612bef1b955bcff038007bda4da732a5"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "6",
+        "measurement_method": "",
+        "loc_name": "SH ABANAO RD BAGUIO CITY",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.5929204",
+        "y_coord": "16.41370468",
+        "param_unit": "",
+        "sys_loc_code": "SH ABANAO RD BAGUIO",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.59292,
+          16.413704
+        ],
+        "type": "Point"
+      },
+      "id": "613dfd0a11d2485c65d03a7b4dded827"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "94",
+        "measurement_method": "",
+        "loc_name": "SH ORTIGAS EX CAINTA EAST",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.126931",
+        "y_coord": "14.582544",
+        "param_unit": "",
+        "sys_loc_code": "SH ORTIGAS EX CAINTA",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.126931,
+          14.582544
+        ],
+        "type": "Point"
+      },
+      "id": "6450f6ef13fa12e39a0d852de9df6c36"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "135",
+        "measurement_method": "",
+        "loc_name": "SH TAGAYTAY KAYBGAL SOUTH",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.9617714",
+        "y_coord": "14.1149781",
+        "param_unit": "",
+        "sys_loc_code": "SH TAGAYTAY KAYBGAL",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.961771,
+          14.114978
+        ],
+        "type": "Point"
+      },
+      "id": "656fe4254e67a201747efa278bf4662c"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "114",
+        "measurement_method": "",
+        "loc_name": "SH ROXAS AVE BAYOR",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "122.753139",
+        "y_coord": "11.579523",
+        "param_unit": "",
+        "sys_loc_code": "SH ROXAS AVE BAYOR",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          122.753139,
+          11.579523
+        ],
+        "type": "Point"
+      },
+      "id": "65b8dfc3a23253b23a1e56b217fd5eb3"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "80",
+        "measurement_method": "",
+        "loc_name": "SH MINDANAO COR SSS RD",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.0322624",
+        "y_coord": "14.6851054",
+        "param_unit": "",
+        "sys_loc_code": "SH MINDANAO COR SSS",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.032262,
+          14.685105
+        ],
+        "type": "Point"
+      },
+      "id": "6a9140f069fb9856d160306a3240975c"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "104",
+        "measurement_method": "",
+        "loc_name": "SH PLARIDEL BYPASS ROAD",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.891649",
+        "y_coord": "14.872808",
+        "param_unit": "",
+        "sys_loc_code": "SH PLARIDEL BYPSS RD",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.891649,
+          14.872808
+        ],
+        "type": "Point"
+      },
+      "id": "6b3aa14f3cbff8ad62e643b5720f3705"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "15",
+        "measurement_method": "",
+        "loc_name": "SH ARANETA BRGY TATALON",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.0148522",
+        "y_coord": "14.62614983",
+        "param_unit": "",
+        "sys_loc_code": "SH ARANETA BRGY TATA",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.014852,
+          14.626149
+        ],
+        "type": "Point"
+      },
+      "id": "6b5142ccde83d40cc60c4b08c2ccd7fc"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "27",
+        "measurement_method": "",
+        "loc_name": "SH CAGAYAN RD 1 PLARIDEL",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.8640901",
+        "y_coord": "14.8774064",
+        "param_unit": "",
+        "sys_loc_code": "SH CAGAYAN RD 1 PLAR",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.86409,
+          14.877406
+        ],
+        "type": "Point"
+      },
+      "id": "6c75c3b52f5d10e93d0e799ea3be0adf"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "121",
+        "measurement_method": "",
+        "loc_name": "SH SAN ROQUE IRIGA CITY",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "123.413955",
+        "y_coord": "13.421064",
+        "param_unit": "",
+        "sys_loc_code": "SH SAN ROQUE IRIGA C",
+        "param_text": "3M",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          123.413955,
+          13.421064
+        ],
+        "type": "Point"
+      },
+      "id": "6fd63472ea073b2928f4b50e35fa54c2"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "57",
+        "measurement_method": "",
+        "loc_name": "SH JPRIZAL SPAIN MARIKINA",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.1065803",
+        "y_coord": "14.6632076",
+        "param_unit": "",
+        "sys_loc_code": "SH JPRIZAL SPAIN MAR",
+        "param_text": "3M",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.10658,
+          14.663207
+        ],
+        "type": "Point"
+      },
+      "id": "780e02a4c421bf949d6b3217241e1e61"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "125",
+        "measurement_method": "",
+        "loc_name": "SH SHAW CAPITOL DRIVE",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.061359",
+        "y_coord": "14.574352",
+        "param_unit": "",
+        "sys_loc_code": "SH SHAW CAPITOL DRIV",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.061359,
+          14.574352
+        ],
+        "type": "Point"
+      },
+      "id": "78f989c7bb083f055e1bfbff528491a7"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "106",
+        "measurement_method": "",
+        "loc_name": "SH PLEASNT HILLS SJDM BUL",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.074346",
+        "y_coord": "14.778136",
+        "param_unit": "",
+        "sys_loc_code": "SH PLEASNT HILLS SJD",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.074346,
+          14.778136
+        ],
+        "type": "Point"
+      },
+      "id": "7bffd2cd97787fcae804812832f05d38"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "105",
+        "measurement_method": "",
+        "loc_name": "SH PLARIDEL MANDAUE",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "123.953647",
+        "y_coord": "10.337262",
+        "param_unit": "",
+        "sys_loc_code": "SH PLARIDEL MANDAUE",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          123.953647,
+          10.337262
+        ],
+        "type": "Point"
+      },
+      "id": "7c9f8d5d9bd41df4e629f692be50411a"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "16",
+        "measurement_method": "",
+        "loc_name": "SH AURORA ANDREWS",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.005333",
+        "y_coord": "14.528121",
+        "param_unit": "",
+        "sys_loc_code": "SH AURORA ANDREWS",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.005333,
+          14.528121
+        ],
+        "type": "Point"
+      },
+      "id": "7fe67997fc66f327399501e3298c1a87"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "23",
+        "measurement_method": "",
+        "loc_name": "SH BUROL DBB DASAMARINAS",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.9586626",
+        "y_coord": "14.32863951",
+        "param_unit": "",
+        "sys_loc_code": "SH BUROL DBB DASAMAR",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.958662,
+          14.328639
+        ],
+        "type": "Point"
+      },
+      "id": "80dd71353808732bb1999022299930c1"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "67",
+        "measurement_method": "",
+        "loc_name": "SH MAHARLIKA SM LUCENA",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.6343089",
+        "y_coord": "13.94698085",
+        "param_unit": "",
+        "sys_loc_code": "SH MAHARLIKA SM LUCE",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.634308,
+          13.94698
+        ],
+        "type": "Point"
+      },
+      "id": "87d9a8d239e287ef7567485833a477d1"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "48",
+        "measurement_method": "",
+        "loc_name": "SH GUMAMELA BALAYAN BATS",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.7385091",
+        "y_coord": "13.9450192",
+        "param_unit": "",
+        "sys_loc_code": "SH GUMAMELA BALAYAN",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.738509,
+          13.945019
+        ],
+        "type": "Point"
+      },
+      "id": "8dd703d14d2209f3e1843a513b796c5e"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "25",
+        "measurement_method": "",
+        "loc_name": "SH C5 EASTWOOD NORTHBOUND",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.079623",
+        "y_coord": "14.602637",
+        "param_unit": "",
+        "sys_loc_code": "SH C5 EASTWOOD NORTH",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.079623,
+          14.602637
+        ],
+        "type": "Point"
+      },
+      "id": "93faa8ae5b9bf627fe092d6b4242d5c7"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "79",
+        "measurement_method": "",
+        "loc_name": "SH MCARTHUR VILLASIS PANG",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.5887216",
+        "y_coord": "15.8995504",
+        "param_unit": "",
+        "sys_loc_code": "SH MCARTHUR VILLASIS",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.588721,
+          15.89955
+        ],
+        "type": "Point"
+      },
+      "id": "980515f5e3df1fe79264b72ae3aa1c80"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "2",
+        "measurement_method": "",
+        "loc_name": "SH 4TH RD BURGOS BACOLOD",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "122.963177",
+        "y_coord": "10.665984",
+        "param_unit": "",
+        "sys_loc_code": "SH 4TH RD BURGOS BAC",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          122.963177,
+          10.665984
+        ],
+        "type": "Point"
+      },
+      "id": "9857a82cdf0956f78f6e6a51128bbd06"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "133",
+        "measurement_method": "",
+        "loc_name": "SH TABANG TOLL GUIGUINTO",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.8664581",
+        "y_coord": "14.83737005",
+        "param_unit": "",
+        "sys_loc_code": "SH TABANG TOLL GUIGU",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.866458,
+          14.83737
+        ],
+        "type": "Point"
+      },
+      "id": "9905e9c019f497d25c9c97c897f4fb54"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "51",
+        "measurement_method": "",
+        "loc_name": "SH IBA MEYCAUAYAN BULACAN",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.9786568",
+        "y_coord": "14.75416328",
+        "param_unit": "",
+        "sys_loc_code": "SH IBA MEYCAUAYAN BU",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.978656,
+          14.754163
+        ],
+        "type": "Point"
+      },
+      "id": "9b1f057191d4749aef70fa3693af9fbc"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "61",
+        "measurement_method": "",
+        "loc_name": "SH LEON GARCIA AGDAO",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "125.6245229",
+        "y_coord": "7.0800082",
+        "param_unit": "",
+        "sys_loc_code": "SH LEON GARCIA AGDAO",
+        "param_text": "3M",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          125.624522,
+          7.080008
+        ],
+        "type": "Point"
+      },
+      "id": "9c722b0f7248f0bedda02c948cbd407b"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "3",
+        "measurement_method": "",
+        "loc_name": "SH A DEL ROSARIO CENIZA",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "123.941379",
+        "y_coord": "10.32866",
+        "param_unit": "",
+        "sys_loc_code": "SH A DEL ROSARIO CEN",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          123.941379,
+          10.32866
+        ],
+        "type": "Point"
+      },
+      "id": "9d5220d9024fe633ce6444b86e5c13ea"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "139",
+        "measurement_method": "",
+        "loc_name": "SH TOMINOBO ILIGAN",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "124.218948",
+        "y_coord": "8.209484",
+        "param_unit": "",
+        "sys_loc_code": "SH TOMINOBO ILIGAN",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          124.218948,
+          8.209484
+        ],
+        "type": "Point"
+      },
+      "id": "9dbed1cc27c247bc3141cf4b787fca22"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "41",
+        "measurement_method": "",
+        "loc_name": "SH EDSA HERITAGE",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.993708",
+        "y_coord": "14.537737",
+        "param_unit": "",
+        "sys_loc_code": "SH EDSA HERITAGE",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.993708,
+          14.537737
+        ],
+        "type": "Point"
+      },
+      "id": "a269c1be28eaa6d506fd3a75b79edf6a"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "21",
+        "measurement_method": "",
+        "loc_name": "SH BUCAL CALAMBA",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.1677342",
+        "y_coord": "14.1907959",
+        "param_unit": "",
+        "sys_loc_code": "SH BUCAL CALAMBA",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.167734,
+          14.190795
+        ],
+        "type": "Point"
+      },
+      "id": "a33d0529e87250763824d3cbdfb23103"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "12",
+        "measurement_method": "",
+        "loc_name": "SH ANGEL TUAZON SANROQUE",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.102417",
+        "y_coord": "14.627517",
+        "param_unit": "",
+        "sys_loc_code": "SH ANGEL TUAZON SANR",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.102417,
+          14.627517
+        ],
+        "type": "Point"
+      },
+      "id": "a3415b6d5125836c7894e7e381aa6014"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "91",
+        "measurement_method": "",
+        "loc_name": "SH NLT2 SBND MEXICO PAMP",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.643671",
+        "y_coord": "15.12940113",
+        "param_unit": "",
+        "sys_loc_code": "SH NLT2 SBND MEXICO",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.643671,
+          15.129401
+        ],
+        "type": "Point"
+      },
+      "id": "a7b2cc9f765710282af3707b27aa2682"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "56",
+        "measurement_method": "",
+        "loc_name": "SH JP RIZAL LAMUAN MRIKNA",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.0964451",
+        "y_coord": "14.6460978",
+        "param_unit": "",
+        "sys_loc_code": "SH JP RIZAL LAMUAN",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.096445,
+          14.646097
+        ],
+        "type": "Point"
+      },
+      "id": "a817f8f3b360fe4ed41b6e4b156ac0b9"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "82",
+        "measurement_method": "",
+        "loc_name": "SH N BACALSO MINGLANILLA",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "123.8125243",
+        "y_coord": "10.25593567",
+        "param_unit": "",
+        "sys_loc_code": "SH N BACALSO MINGLAN",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          123.812524,
+          10.255935
+        ],
+        "type": "Point"
+      },
+      "id": "a825ea6580021e9dbed6e921eda280f1"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "98",
+        "measurement_method": "",
+        "loc_name": "SH P ACHARON MAGSAYSAY",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "125.173127",
+        "y_coord": "6.107054",
+        "param_unit": "",
+        "sys_loc_code": "SH P ACHARON MAGSAYS",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          125.173127,
+          6.107054
+        ],
+        "type": "Point"
+      },
+      "id": "aa91cbc668f01839587537365c2ec232"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "13",
+        "measurement_method": "",
+        "loc_name": "SH ANOS LOS BANOS",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.2289638",
+        "y_coord": "14.18143239",
+        "param_unit": "",
+        "sys_loc_code": "SH ANOS LOS BANOS",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.228963,
+          14.181432
+        ],
+        "type": "Point"
+      },
+      "id": "aaa13a201daf63d3b258b379a421daac"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "45",
+        "measurement_method": "",
+        "loc_name": "SH FERNANDEZ DAGUPAN PANG",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.3497019",
+        "y_coord": "16.04631681",
+        "param_unit": "",
+        "sys_loc_code": "SH FERNANDEZ DAGUPAN",
+        "param_text": "2VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.349701,
+          16.046316
+        ],
+        "type": "Point"
+      },
+      "id": "ac92c7aca5a25c4c3c94dd4d6a0dced5"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "126",
+        "measurement_method": "",
+        "loc_name": "SH SHAW PILAR MABINI",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.0418454",
+        "y_coord": "14.58929176",
+        "param_unit": "",
+        "sys_loc_code": "SH SHAW PILAR MABINI",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.041845,
+          14.589291
+        ],
+        "type": "Point"
+      },
+      "id": "af11147af9cc2b95a15d73a2c4cd88ba"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "142",
+        "measurement_method": "",
+        "loc_name": "SH VAMENTA CARMEN CAGAYAN",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "124.6380045",
+        "y_coord": "8.47881746",
+        "param_unit": "",
+        "sys_loc_code": "SH VAMENTA CARMEN CA",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          124.638004,
+          8.478817
+        ],
+        "type": "Point"
+      },
+      "id": "b2a644c3633f7629720e093a1903c495"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "18",
+        "measurement_method": "",
+        "loc_name": "SH BALANGA BATAAN",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.5420454",
+        "y_coord": "14.68021393",
+        "param_unit": "",
+        "sys_loc_code": "SH BALANGA BATAAN",
+        "param_text": "2VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.542045,
+          14.680213
+        ],
+        "type": "Point"
+      },
+      "id": "b3cf615c980c949b36ce5548ee38e3e9"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "111",
+        "measurement_method": "",
+        "loc_name": "SH QUIRINO CENTRAL BANK",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "125.610141",
+        "y_coord": "7.07498",
+        "param_unit": "",
+        "sys_loc_code": "SH QUIRINO CENTRAL B",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          125.610141,
+          7.07498
+        ],
+        "type": "Point"
+      },
+      "id": "b5897ce08a272a602623f186718c62f7"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "124",
+        "measurement_method": "",
+        "loc_name": "SH SB MCBRIONES MANDAUE",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "123.942017",
+        "y_coord": "10.337051",
+        "param_unit": "",
+        "sys_loc_code": "SH SB MCBRIONES MAND",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          123.942017,
+          10.337051
+        ],
+        "type": "Point"
+      },
+      "id": "b6e88c7f80445bb46fe0a7bd8385c3f5"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "96",
+        "measurement_method": "",
+        "loc_name": "SH ORTIGAS F ORTIGAS",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.063076",
+        "y_coord": "14.58900967",
+        "param_unit": "",
+        "sys_loc_code": "SH ORTIGAS F ORTIGAS",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.063076,
+          14.589009
+        ],
+        "type": "Point"
+      },
+      "id": "b720c6ec0f81c647dd7de61807337749"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "60",
+        "measurement_method": "",
+        "loc_name": "SH LAYAC DINALUPIHAN BAT",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.4693275",
+        "y_coord": "14.86393975",
+        "param_unit": "",
+        "sys_loc_code": "SH LAYAC DINALUPIHAN",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.469327,
+          14.863939
+        ],
+        "type": "Point"
+      },
+      "id": "b8049ea24de8c5e4701ba639724f0961"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "63",
+        "measurement_method": "",
+        "loc_name": "SH LOPEZ JAENA STA ISABEL",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "122.556456",
+        "y_coord": "10.726748",
+        "param_unit": "",
+        "sys_loc_code": "SH LOPEZ JAENA ISA",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          122.556456,
+          10.726748
+        ],
+        "type": "Point"
+      },
+      "id": "b919c485bf7a315fd2272e866ec883ff"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "95",
+        "measurement_method": "",
+        "loc_name": "SH ORTIGAS EXT PEARL",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.0990254",
+        "y_coord": "14.58976545",
+        "param_unit": "",
+        "sys_loc_code": "SH ORTIGAS EXT PEARL",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.099025,
+          14.589765
+        ],
+        "type": "Point"
+      },
+      "id": "b9bf8bd5faeaec2d5e33d722542f759a"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "7",
+        "measurement_method": "",
+        "loc_name": "SH AGTON TORIL DAVAO",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "125.498138",
+        "y_coord": "7.015254",
+        "param_unit": "",
+        "sys_loc_code": "SH AGTON TORIL DAVAO",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          125.498138,
+          7.015254
+        ],
+        "type": "Point"
+      },
+      "id": "bbdfecd54dd981772a1f4659468d8769"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "59",
+        "measurement_method": "",
+        "loc_name": "SH KM4 MARCOS HWAY BAGUIO",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.579588",
+        "y_coord": "16.39358782",
+        "param_unit": "",
+        "sys_loc_code": "SH KM4 MARCOS HWAY B",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.579588,
+          16.393587
+        ],
+        "type": "Point"
+      },
+      "id": "bd139bfd597955075bee3c9853fefa32"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "117",
+        "measurement_method": "",
+        "loc_name": "SH SAN FERMIN CAUAYAN",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.7661019",
+        "y_coord": "16.93474933",
+        "param_unit": "",
+        "sys_loc_code": "SH SAN FERMIN CAUAYA",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.766101,
+          16.934749
+        ],
+        "type": "Point"
+      },
+      "id": "bd3d45d09e6df92a31e82061fc22a65c"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "8",
+        "measurement_method": "",
+        "loc_name": "SH AGUINALDO REAL II",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.944785",
+        "y_coord": "14.4353721",
+        "param_unit": "",
+        "sys_loc_code": "SH AGUINALDO REAL II",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.944785,
+          14.435372
+        ],
+        "type": "Point"
+      },
+      "id": "c1e479287cbf9b2edc727ab56500cff7"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "68",
+        "measurement_method": "",
+        "loc_name": "SH MALIWALO TARLAC TARLAC",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.612154",
+        "y_coord": "15.482695",
+        "param_unit": "",
+        "sys_loc_code": "SH MALIWALO TARLAC T",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.612154,
+          15.482695
+        ],
+        "type": "Point"
+      },
+      "id": "c44e900863ecf9cf9a159aa3dced50b3"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "122",
+        "measurement_method": "",
+        "loc_name": "SH SAN ROQUE TALISAY CEBU",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "123.8692629",
+        "y_coord": "10.25774339",
+        "param_unit": "",
+        "sys_loc_code": "SH SAN ROQUE TALISAY",
+        "param_text": "3M",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          123.869262,
+          10.257743
+        ],
+        "type": "Point"
+      },
+      "id": "cb53d9b74fba36a35d2366f980a51659"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "44",
+        "measurement_method": "",
+        "loc_name": "SH FELIX CYPRESS",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.1126388",
+        "y_coord": "14.59251117",
+        "param_unit": "",
+        "sys_loc_code": "SH FELIX CYPRESS",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.112638,
+          14.592511
+        ],
+        "type": "Point"
+      },
+      "id": "cb8b656981672936cde6bfdd29df7a46"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "69",
+        "measurement_method": "",
+        "loc_name": "SH MANILA EAST RD N BOUND",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.1395722",
+        "y_coord": "14.55132069",
+        "param_unit": "",
+        "sys_loc_code": "SH MANILA EAST RD N",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.139572,
+          14.55132
+        ],
+        "type": "Point"
+      },
+      "id": "cc98dc7dbcffa28045bdf6354ca57c11"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "101",
+        "measurement_method": "",
+        "loc_name": "SH PALLOCAN WEST BATANGAS",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.0699769",
+        "y_coord": "13.75411891",
+        "param_unit": "",
+        "sys_loc_code": "SH PALLOCAN WEST BAT",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.069976,
+          13.754118
+        ],
+        "type": "Point"
+      },
+      "id": "cd693f59b65b43ccd0039a53e932c2e5"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "116",
+        "measurement_method": "",
+        "loc_name": "SH SALAWAG DASMARINAS",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.980841",
+        "y_coord": "14.352242",
+        "param_unit": "",
+        "sys_loc_code": "SH SALAWAG DASMARINA",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.980841,
+          14.352242
+        ],
+        "type": "Point"
+      },
+      "id": "cdd2fc5f1dfab4b07f16de06ff6d0e7d"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "14",
+        "measurement_method": "",
+        "loc_name": "SH ANTIPOLO D NORTE LIPA",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.1668176",
+        "y_coord": "13.93185085",
+        "param_unit": "",
+        "sys_loc_code": "SH ANTIPOLO D NORTE",
+        "param_text": "2VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.166817,
+          13.93185
+        ],
+        "type": "Point"
+      },
+      "id": "ceca2584d47cc0df483a2295f54f1138"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "74",
+        "measurement_method": "",
+        "loc_name": "SH MATINA DC GOLF CLUB",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "125.5849245",
+        "y_coord": "7.0596083",
+        "param_unit": "",
+        "sys_loc_code": "SH MATINA DC GOLF",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          125.584924,
+          7.059608
+        ],
+        "type": "Point"
+      },
+      "id": "cefd0d3cd1218026a7226cddceaebaf1"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "107",
+        "measurement_method": "",
+        "loc_name": "SH PORT DIVERSION BATNGAS",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.0588186",
+        "y_coord": "13.78502455",
+        "param_unit": "",
+        "sys_loc_code": "SH PORT DIVERSION BA",
+        "param_text": "2VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.058818,
+          13.785024
+        ],
+        "type": "Point"
+      },
+      "id": "d26d6fa0439dca0876f99cccc3b7dd4f"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "84",
+        "measurement_method": "",
+        "loc_name": "SH NAGUILIAN1 BAGUIO CITY",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.5906874",
+        "y_coord": "16.41479693",
+        "param_unit": "",
+        "sys_loc_code": "SH NAGUILIAN1 BAGUIO",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.590687,
+          16.414796
+        ],
+        "type": "Point"
+      },
+      "id": "d5b87333564fe913b0d12e916abc37c1"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "24",
+        "measurement_method": "",
+        "loc_name": "SH BYPASS STA MARIA BUL",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.952166",
+        "y_coord": "14.82085",
+        "param_unit": "",
+        "sys_loc_code": "SH BYPASS STA MARIA",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.952166,
+          14.82085
+        ],
+        "type": "Point"
+      },
+      "id": "d6d5940818b1a2d45d1ffcbcb4c40a45"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "131",
+        "measurement_method": "",
+        "loc_name": "SH SUCAT RD PARANAQUE",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.0342467",
+        "y_coord": "14.45740904",
+        "param_unit": "",
+        "sys_loc_code": "SH SUCAT RD PARANAQU",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.034246,
+          14.457409
+        ],
+        "type": "Point"
+      },
+      "id": "d6e0a6dc944df6640061839a4af97708"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "49",
+        "measurement_method": "",
+        "loc_name": "SH H ABELLANA SUICO",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "123.9396493",
+        "y_coord": "10.36549397",
+        "param_unit": "",
+        "sys_loc_code": "SH H ABELLANA SUICO",
+        "param_text": "2VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          123.939649,
+          10.365493
+        ],
+        "type": "Point"
+      },
+      "id": "d84b87f4300563d7fbca0f62a918a7bf"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "128",
+        "measurement_method": "",
+        "loc_name": "SH SAN PEDRO BUHANGIN",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "125.614636",
+        "y_coord": "7.099341",
+        "param_unit": "",
+        "sys_loc_code": "SH SN PEDRO BUHANGIN",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          125.614636,
+          7.099341
+        ],
+        "type": "Point"
+      },
+      "id": "da019da2587f06524ee9c394df2d3df1"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "66",
+        "measurement_method": "",
+        "loc_name": "SH MAGSAYSAY AVE NAGA",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "123.1961773",
+        "y_coord": "13.63131684",
+        "param_unit": "",
+        "sys_loc_code": "SH MAGSAYSAY AVE NAG",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          123.196177,
+          13.631316
+        ],
+        "type": "Point"
+      },
+      "id": "dbe32a7fa691d5b1110279ecb4f329c0"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "81",
+        "measurement_method": "",
+        "loc_name": "SH MJ CUENCO CARRETA",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "123.90814",
+        "y_coord": "10.309717",
+        "param_unit": "",
+        "sys_loc_code": "SH MJ CUENCO CARRETA",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          123.90814,
+          10.309717
+        ],
+        "type": "Point"
+      },
+      "id": "dc702eb464cfd6fabe0dc5416b654e08"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "108",
+        "measurement_method": "",
+        "loc_name": "SH PULO CABUYAO",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.1153606",
+        "y_coord": "14.24208356",
+        "param_unit": "",
+        "sys_loc_code": "SH PULO CABUYAO",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.11536,
+          14.242083
+        ],
+        "type": "Point"
+      },
+      "id": "dc9bc5f00831cfef42deb07992c16810"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "73",
+        "measurement_method": "",
+        "loc_name": "SH MATAHIMIK P PRINCESA DOSS",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "118.7398212",
+        "y_coord": "9.7441141",
+        "param_unit": "",
+        "sys_loc_code": "SH MATAHIMIK P PRINC",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          118.739821,
+          9.744114
+        ],
+        "type": "Point"
+      },
+      "id": "dcdb9d1074d34d7d8aa9da61623a1b85"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "120",
+        "measurement_method": "",
+        "loc_name": "SH SAN MIGUEL CALASIAO",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.3563113",
+        "y_coord": "16.02106315",
+        "param_unit": "",
+        "sys_loc_code": "SH SAN MIGUEL CALASI",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.356311,
+          16.021063
+        ],
+        "type": "Point"
+      },
+      "id": "e0faaf687d93d20572ace9fabc7282dd"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "28",
+        "measurement_method": "",
+        "loc_name": "SH CAGAYAN RD 2 PLARIDEL",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.8610789",
+        "y_coord": "14.87126816",
+        "param_unit": "",
+        "sys_loc_code": "SH CAGAYAN RD 2 PLAR",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.861078,
+          14.871268
+        ],
+        "type": "Point"
+      },
+      "id": "e3147a2b78e4b443e74d48a46674e460"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "129",
+        "measurement_method": "",
+        "loc_name": "SH SORIANO TABON CAVITE",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.9079755",
+        "y_coord": "14.43842389",
+        "param_unit": "",
+        "sys_loc_code": "SH SORIANO TABON CAV",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.907975,
+          14.438423
+        ],
+        "type": "Point"
+      },
+      "id": "e728ea122c8384fa4af7fac083742aec"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "37",
+        "measurement_method": "",
+        "loc_name": "SH DRT HWAY S CRISTO PUL",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.8681979",
+        "y_coord": "14.90250668",
+        "param_unit": "",
+        "sys_loc_code": "SH DRT HWAY S CRISTO",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.868197,
+          14.902506
+        ],
+        "type": "Point"
+      },
+      "id": "e73d45e6bba54ea41d632ccdd93e376c"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "93",
+        "measurement_method": "",
+        "loc_name": "SH OG1 SAN FERNANDO PAMP",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.6883751",
+        "y_coord": "15.04414544",
+        "param_unit": "",
+        "sys_loc_code": "SH OG1 SAN FERNANDO",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.688375,
+          15.044145
+        ],
+        "type": "Point"
+      },
+      "id": "eab35395fbb85a2eefc49e8016b71e3c"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "53",
+        "measurement_method": "",
+        "loc_name": "SH J PANIS USC",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "123.914159",
+        "y_coord": "10.352818",
+        "param_unit": "",
+        "sys_loc_code": "SH J PANIS USC",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          123.914159,
+          10.352818
+        ],
+        "type": "Point"
+      },
+      "id": "eb5de8f295f1c8ebdd2419af240dd123"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "10",
+        "measurement_method": "",
+        "loc_name": "10021478 SH ALDEA, TANAY, RIZAL",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.295447",
+        "y_coord": "14.500478",
+        "param_unit": "",
+        "sys_loc_code": "SH ALDEA, TANAY",
+        "param_text": "3M",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.295447,
+          14.500478
+        ],
+        "type": "Point"
+      },
+      "id": "ebd70f1d1a0fe3768ea6ef6d460ffa70"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "9",
+        "measurement_method": "",
+        "loc_name": "SH ALABNG ZAPOTE TALON 1",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.985581",
+        "y_coord": "14.447611",
+        "param_unit": "",
+        "sys_loc_code": "SH ALABNG ZAP TALON1",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.985581,
+          14.447611
+        ],
+        "type": "Point"
+      },
+      "id": "ebe47113066da1cefa34565ab999a65b"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "77",
+        "measurement_method": "",
+        "loc_name": "SH MCARTHUR PULUNG BULU",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.597574",
+        "y_coord": "15.13434362",
+        "param_unit": "",
+        "sys_loc_code": "SH MCARTHUR PULUNG B",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.597574,
+          15.134343
+        ],
+        "type": "Point"
+      },
+      "id": "ee8f0bdec7fd77e94f9c0147900232f0"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "119",
+        "measurement_method": "",
+        "loc_name": "SH SAN JUAN BALAGTAS BUL",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.9116349",
+        "y_coord": "14.81386713",
+        "param_unit": "",
+        "sys_loc_code": "SH SAN JUAN BALAGTAS",
+        "param_text": "3M",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.911634,
+          14.813867
+        ],
+        "type": "Point"
+      },
+      "id": "f12c2d59dba1f461e4a212bced4cecf6"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "102",
+        "measurement_method": "",
+        "loc_name": "SH PAMPANG SORSOGON",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "123.9830182",
+        "y_coord": "12.97949839",
+        "param_unit": "",
+        "sys_loc_code": "SH PAMPANG SORSOGON",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          123.983018,
+          12.979498
+        ],
+        "type": "Point"
+      },
+      "id": "f180f6cec97886bdc59044b0aed71515"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "40",
+        "measurement_method": "",
+        "loc_name": "SH EAST BAJAC OLONGAPO",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.290441",
+        "y_coord": "14.844389",
+        "param_unit": "",
+        "sys_loc_code": "SH EAST BAJAC OLONGA",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.290441,
+          14.844389
+        ],
+        "type": "Point"
+      },
+      "id": "f1bdd1769366999e3610e9e48969589e"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "140",
+        "measurement_method": "",
+        "loc_name": "SH TUNGKONG MANGGA SJDM",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.074836",
+        "y_coord": "14.790043",
+        "param_unit": "",
+        "sys_loc_code": "SH TUNGKONG MANGGA",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.074836,
+          14.790043
+        ],
+        "type": "Point"
+      },
+      "id": "f2026752fc72ef99bb8920a9c81f7371"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "141",
+        "measurement_method": "",
+        "loc_name": "SH ULAS TALOMO DAVAO",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "125.5462954",
+        "y_coord": "7.055129989",
+        "param_unit": "",
+        "sys_loc_code": "SH ULAS TALOMO DAVAO",
+        "param_text": "2VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          125.546295,
+          7.055129
+        ],
+        "type": "Point"
+      },
+      "id": "f3ac621ccc0b25a2a8830fb01655b892"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "32",
+        "measurement_method": "",
+        "loc_name": "SH CIRCUMFERENTIAL ANTPLO",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.185551",
+        "y_coord": "14.578339",
+        "param_unit": "",
+        "sys_loc_code": "SH CIRCUMFERENTIAL A",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.185551,
+          14.578339
+        ],
+        "type": "Point"
+      },
+      "id": "f57f540617e6b89ce4a553737a3d5d5c"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "103",
+        "measurement_method": "",
+        "loc_name": "SH PASIG BLVD KAWILIHAN",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.0661125",
+        "y_coord": "14.56610469",
+        "param_unit": "",
+        "sys_loc_code": "SH PASIG BLVD KAWILI",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.066112,
+          14.566104
+        ],
+        "type": "Point"
+      },
+      "id": "f5a15f8691f9275b904d3d8cccf8640c"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "100",
+        "measurement_method": "",
+        "loc_name": "SH PAGSABANGA TAGUM",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "125.8002537",
+        "y_coord": "7.452480641",
+        "param_unit": "",
+        "sys_loc_code": "SH PAGSABANGA TAGUM",
+        "param_text": "3M",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          125.800253,
+          7.45248
+        ],
+        "type": "Point"
+      },
+      "id": "f63a30cafdc99a452cbccd94071ef26b"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "144",
+        "measurement_method": "",
+        "loc_name": "SH VLI MCARTHUR TARLAC",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.59541",
+        "y_coord": "15.479435",
+        "param_unit": "",
+        "sys_loc_code": "SH VLI MCARTHUR TARL",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.59541,
+          15.479435
+        ],
+        "type": "Point"
+      },
+      "id": "f67a545302703f90401e707520e439bc"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "112",
+        "measurement_method": "",
+        "loc_name": "SH REAL DUMAGUETE CITY",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "123.300499",
+        "y_coord": "9.319039",
+        "param_unit": "",
+        "sys_loc_code": "SH REAL DUMAGUETE",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          123.300499,
+          9.319039
+        ],
+        "type": "Point"
+      },
+      "id": "f681448b4eab1a920c6af3a71179b4fd"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "123",
+        "measurement_method": "",
+        "loc_name": "SH SASA DEPOT",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "125.653114",
+        "y_coord": "7.1797395",
+        "param_unit": "",
+        "sys_loc_code": "SH SASA DEPOT",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          125.653114,
+          7.179739
+        ],
+        "type": "Point"
+      },
+      "id": "f7fbf61a3daef75f9c0236d4e8e61572"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "78",
+        "measurement_method": "",
+        "loc_name": "SH MCARTHUR SBND URDANETA",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "120.5720473",
+        "y_coord": "15.96791291",
+        "param_unit": "",
+        "sys_loc_code": "SH MCARTHUR SBND URD",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          120.572047,
+          15.967912
+        ],
+        "type": "Point"
+      },
+      "id": "f86982a1dc898143d26ae84e669b3960"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "109",
+        "measurement_method": "",
+        "loc_name": "SH QUEZON AVE EDSA BOUND",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.009449",
+        "y_coord": "14.624482",
+        "param_unit": "",
+        "sys_loc_code": "SH QUEZON AVE EDSA B",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.009449,
+          14.624482
+        ],
+        "type": "Point"
+      },
+      "id": "f8ac165dd2a6b9603b5620655f5eecc3"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "113",
+        "measurement_method": "",
+        "loc_name": "SH RIZAL AVE PAGADIAN",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "123.4401304",
+        "y_coord": "7.823924558",
+        "param_unit": "",
+        "sys_loc_code": "SH RIZAL AVE PAGADIA",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          123.44013,
+          7.823924
+        ],
+        "type": "Point"
+      },
+      "id": "f8dc94d4b927653b9d411f31b63709b7"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "46",
+        "measurement_method": "",
+        "loc_name": "SH GATID STA CRUZ",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.3957882",
+        "y_coord": "14.25737183",
+        "param_unit": "",
+        "sys_loc_code": "SH GATID STA CRUZ",
+        "param_text": "7L",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.395788,
+          14.257371
+        ],
+        "type": "Point"
+      },
+      "id": "fbc64524fc0d4ee853dde985ba171ffe"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "loc_group": "NERA",
+        "loc_report_order": "99",
+        "measurement_method": "",
+        "loc_name": "SH PACIANO CALAMBA",
+        "LOC_TYPE_2": "SH",
+        "x_coord": "121.1385242",
+        "y_coord": "14.2157942",
+        "param_unit": "",
+        "sys_loc_code": "SH PACIANO CALAMBA",
+        "param_text": "1VH",
+        "param_code": "NERA Rating",
+        "param_value": ""
+      },
+      "geometry": {
+        "coordinates": [
+          121.138524,
+          14.215794
+        ],
+        "type": "Point"
+      },
+      "id": "ff54e2842b15ce3b8403f27f53960bf6"
+          
+            }
+          ]
+        };
+
+      /**
+       * Assign a unique id to each store. You'll use this `id`
+       * later to associate each point on the map with a listing
+       * in the sidebar.
+      */
+      stores.features.forEach(function(store, i){
+        store.properties.id = i;
+      });
+
+      /**
+       * Wait until the map loads to make changes to the map.
+      */
+      map.on('load', function (e) {
+        /**
+         * This is where your '.addLayer()' used to be, instead
+         * add only the source without styling a layer
+        */
+        map.addSource("places", {
+          "type": "geojson",
+          "data": stores
+        });
+
+        /**
+         * Create a new MapboxGeocoder instance.
+        */
+        var geocoder = new MapboxGeocoder({
+            accessToken: mapboxgl.accessToken,
+            mapboxgl: mapboxgl,
+            marker: true,
+            bbox: [116.52461009918142,5.630995909897479,129.3566413491984,19.822243779385403]
+        });
+
+        /**
+         * Add all the things to the page:
+         * - The location listings on the side of the page
+         * - The search box (MapboxGeocoder) onto the map
+         * - The markers onto the map
+        */
+        buildLocationList(stores);
+        map.addControl(geocoder, 'top-left');
+        addMarkers();
+
+        /**
+         * Listen for when a geocoder result is returned. When one is returned:
+         * - Calculate distances
+         * - Sort stores by distance
+         * - Rebuild the listings
+         * - Adjust the map camera
+         * - Open a popup for the closest store
+         * - Highlight the listing for the closest store.
+        */
+        geocoder.on('result', function(ev) {
+
+          /* Get the coordinate of the search result */
+          var searchResult = ev.result.geometry;
+
+          /**
+           * Calculate distances:
+           * For each store, use turf.disance to calculate the distance
+           * in miles between the searchResult and the store. Assign the
+           * calculated value to a property called `distance`.
+          */
+          var options = { units: 'kilometers' };
+          stores.features.forEach(function(store){
+            Object.defineProperty(store.properties, 'distance', {
+              value: turf.distance(searchResult, store.geometry, options),
+              writable: true,
+              enumerable: true,
+              configurable: true
+            });
+          });
+
+          /**
+           * Sort stores by distance from closest to the `searchResult`
+           * to furthest.
+          */
+          stores.features.sort(function(a,b){
+            if (a.properties.distance > b.properties.distance) {
+              return 1;
+            }
+            if (a.properties.distance < b.properties.distance) {
+              return -1;
+            }
+            return 0; // a must be equal to b
+          });
+
+          /**
+           * Rebuild the listings:
+           * Remove the existing listings and build the location
+           * list again using the newly sorted stores.
+          */
+          var listings = document.getElementById('listings');
+          while (listings.firstChild) {
+            listings.removeChild(listings.firstChild);
+          }
+          buildLocationList(stores);
+
+          /* Open a popup for the closest store. */
+          createPopUp(stores.features[0]);
+
+          /** Highlight the listing for the closest store. */
+          var activeListing = document.getElementById('listing-' + stores.features[0].properties.id);
+          activeListing.classList.add('active');
+
+          /**
+           * Adjust the map camera:
+           * Get a bbox that contains both the geocoder result and
+           * the closest store. Fit the bounds to that bbox.
+          */
+          var bbox = getBbox(stores, 0, searchResult);
+          map.fitBounds(bbox, {
+            padding: 100
+          });
+        });
+      });
+
+      /**
+       * Using the coordinates (lng, lat) for
+       * (1) the search result and
+       * (2) the closest store
+       * construct a bbox that will contain both points
+      */
+      function getBbox(sortedStores, storeIdentifier, searchResult) {
+        var lats = [sortedStores.features[storeIdentifier].geometry.coordinates[1], searchResult.coordinates[1]]
+        var lons = [sortedStores.features[storeIdentifier].geometry.coordinates[0], searchResult.coordinates[0]]
+        var sortedLons = lons.sort(function(a,b){
+            if (a > b) { return 1; }
+            if (a.distance < b.distance) { return -1; }
+            return 0;
+          });
+        var sortedLats = lats.sort(function(a,b){
+            if (a > b) { return 1; }
+            if (a.distance < b.distance) { return -1; }
+            return 0;
+          });
+        return [
+          [sortedLons[0], sortedLats[0]],
+          [sortedLons[1], sortedLats[1]]
+        ];
+      }
+
+      /**
+       * Add a marker to the map for every store listing.
+      **/
+      function addMarkers() {
+        /* For each feature in the GeoJSON object above: */
+        stores.features.forEach(function(marker) {
+          /* Create a div element for the marker. */
+          var el = document.createElement('div');
+          /* Assign a unique `id` to the marker. */
+          el.id = "marker-" + marker.properties.id;
+          /* Assign the `marker` class to each marker for styling. */
+          el.className = 'marker';
+
+          /**
+           * Create a marker using the div element
+           * defined above and add it to the map.
+          **/
+          new mapboxgl.Marker(el, {offset: [0, -23]})
+          .setLngLat(marker.geometry.coordinates)
+          .addTo(map);
+
+          /**
+           * Listen to the element and when it is clicked, do three things:
+           * 1. Fly to the point
+           * 2. Close all other popups and display popup for clicked store
+           * 3. Highlight listing in sidebar (and remove highlight for all other listings)
+          **/
+          el.addEventListener('click', function(e){
+            flyToStore(marker);
+            createPopUp(marker);
+            var activeItem = document.getElementsByClassName('active');
+            e.stopPropagation();
+            if (activeItem[0]) {
+              activeItem[0].classList.remove('active');
+            }
+            var listing = document.getElementById('listing-' + marker.properties.id);
+            listing.classList.add('active');
+          });
+        });
+      }
+
+      /**
+       * Add a listing for each store to the sidebar.
+      **/
+      function buildLocationList(data) {
+        data.features.forEach(function(store, i){
+          /**
+           * Create a shortcut for `store.properties`,
+           * which will be used several times below.
+          **/
+          var prop = store.properties;
+
+          /* Add a new listing section to the sidebar. */
+          var listings = document.getElementById('listings');
+          var listing = listings.appendChild(document.createElement('div'));
+          /* Assign a unique `id` to the listing. */
+          listing.id = "listing-" + prop.id;
+          /* Assign the `item` class to each listing for styling. */
+          listing.className = 'item';
+
+          /* Add the link to the individual listing created above. */
+          var link = listing.appendChild(document.createElement('a'));
+          link.href = '#';
+          link.className = 'title';
+          link.id = "link-" + prop.id;
+          link.innerHTML = prop.loc_name;
+
+          /* Add details to the individual listing. */
+          var details = listing.appendChild(document.createElement('div'));
+          details.innerHTML = prop.param_code;
+          if (prop.param_text) {
+            details.innerHTML += ' · ' + prop.param_text;
+          }
+          if (prop.distance) {
+            var roundedDistance = Math.round(prop.distance*100)/100;
+            details.innerHTML += '<p><strong>' + roundedDistance + ' km away</strong></p>';
+          }
+
+          /**
+           * Listen to the element and when it is clicked, do four things:
+           * 1. Update the `currentFeature` to the store associated with the clicked link
+           * 2. Fly to the point
+           * 3. Close all other popups and display popup for clicked store
+           * 4. Highlight listing in sidebar (and remove highlight for all other listings)
+          **/
+          link.addEventListener('click', function(e){
+            for (var i=0; i < data.features.length; i++) {
+              if (this.id === "link-" + data.features[i].properties.id) {
+                var clickedListing = data.features[i];
+                flyToStore(clickedListing);
+                createPopUp(clickedListing);
+              }
+            }
+            var activeItem = document.getElementsByClassName('active');
+            if (activeItem[0]) {
+              activeItem[0].classList.remove('active');
+            }
+            this.parentNode.classList.add('active');
+          });
+        });
+      }
+
+      /**
+       * Use Mapbox GL JS's `flyTo` to move the camera smoothly
+       * a given center point.
+      **/
+      function flyToStore(currentFeature) {
+        map.flyTo({
+            center: currentFeature.geometry.coordinates,
+            zoom: 15
+          });
+      }
+
+      /**
+       * Create a Mapbox GL JS `Popup`.
+      **/
+      function createPopUp(currentFeature) {
+        var popUps = document.getElementsByClassName('mapboxgl-popup');
+        if (popUps[0]) popUps[0].remove();
+        var popup = new mapboxgl.Popup({closeOnClick: true})
+          .setLngLat(currentFeature.geometry.coordinates)
+          .setHTML('<h3>' + currentFeature.properties.loc_name + '</h3>' +
+            '<h4>' + currentFeature.properties.param_text +  '</h4>'+'<h5>' + currentFeature.properties.param_code +  '</h5>')
+          .addTo(map);
+      }
+    /* given a query in the form "lng, lat" or "lat, lng" returns the matching
+* geographic coordinate(s) as search results in carmen geojson format,
+* https://github.com/mapbox/carmen/blob/master/carmen-geojson.md
+*/
+        var coordinatesGeocoder = function(query) {
+        // match anything which looks like a decimal degrees coordinate pair
+        var matches = query.match(
+        /^[ ]*(?:Lat: )?(-?\d+\.?\d*)[, ]+(?:Lng: )?(-?\d+\.?\d*)[ ]*$/i
+        );
+        if (!matches) {
+        return null;
+        }
+
+        function coordinateFeature(lng, lat) {
+        return {
+        center: [lng, lat],
+        geometry: {
+        type: 'Point',
+        coordinates: [lng, lat]
+        },
+        place_name: 'Lat: ' + lat + ' Lng: ' + lng,
+        place_type: ['coordinate'],
+        properties: {},
+        type: 'Feature'
+        };
+        }
+
+        var coord1 = Number(matches[1]);
+        var coord2 = Number(matches[2]);
+        var geocodes = [];
+
+        if (coord1 < -90 || coord1 > 90) {
+        // must be lng, lat
+        geocodes.push(coordinateFeature(coord1, coord2));
+        }
+
+        if (coord2 < -90 || coord2 > 90) {
+        // must be lat, lng
+        geocodes.push(coordinateFeature(coord2, coord1));
+        }
+
+        if (geocodes.length === 0) {
+        // else could be either lng, lat or lat, lng
+        geocodes.push(coordinateFeature(coord1, coord2));
+        geocodes.push(coordinateFeature(coord2, coord1));
+        }
+
+        return geocodes;
+        };
+
+        map.addControl(
+        new MapboxGeocoder({
+        accessToken: mapboxgl.accessToken,
+        localGeocoder: coordinatesGeocoder,
+        zoom: 15,
+        placeholder: 'try 121.009449,14.624482',
+        mapboxgl: mapboxgl
+        })
+        );
+        var distanceContainer = document.getElementById('distance');
+
+        // GeoJSON object to hold our measurement features
+        var geojson = {
+        'type': 'FeatureCollection',
+        'features': []
+        };
+
+        // Used to draw a line between points
+        var linestring = {
+        'type': 'Feature',
+        'geometry': {
+        'type': 'LineString',
+        'coordinates': []
+        }
+        };
+
+        map.on('load', function() {
+        map.addSource('geojson', {
+        'type': 'geojson',
+        'data': geojson
+        });
+
+        // Add styles to the map
+        map.addLayer({
+        id: 'measure-points',
+        type: 'circle',
+        source: 'geojson',
+        paint: {
+        'circle-radius': 5,
+        'circle-color': '#000'
+        },
+        filter: ['in', '$type', 'Point']
+        });
+        map.addLayer({
+        id: 'measure-lines',
+        type: 'line',
+        source: 'geojson',
+        layout: {
+        'line-cap': 'round',
+        'line-join': 'round'
+        },
+        paint: {
+        'line-color': '#000',
+        'line-width': 2.5
+        },
+        filter: ['in', '$type', 'LineString']
+        });
+
+        map.on('dblclick', function(e) {
+        var features = map.queryRenderedFeatures(e.point, {
+        layers: ['measure-points']
+        });
+
+        // Remove the linestring from the group
+        // So we can redraw it based on the points collection
+        if (geojson.features.length > 1) geojson.features.pop();
+
+        // Clear the Distance container to populate it with a new value
+        distanceContainer.innerHTML = '';
+
+        // If a feature was clicked, remove it from the map
+        if (features.length) {
+        var id = features[0].properties.id;
+        geojson.features = geojson.features.filter(function(point) {
+        return point.properties.id !== id;
+        });
+        } else {
+        var point = {
+        'type': 'Feature',
+        'geometry': {
+        'type': 'Point',
+        'coordinates': [e.lngLat.lng, e.lngLat.lat]
+        },
+        'properties': {
+        'id': String(new Date().getTime())
+        }
+        };
+
+        geojson.features.push(point);
+        }
+
+        if (geojson.features.length > 1) {
+        linestring.geometry.coordinates = geojson.features.map(function(
+        point
+        ) {
+        return point.geometry.coordinates;
+        });
+
+        geojson.features.push(linestring);
+
+        // Populate the distanceContainer with total distance
+        var value = document.createElement('pre');
+        value.textContent =
+        'Total distance: ' +
+        turf.length(linestring).toLocaleString() +
+        'km';
+        distanceContainer.appendChild(value);
+        }
+
+        map.getSource('geojson').setData(geojson);
+        });
+        });
+
+        map.on('mousemove', function(e) {
+        var features = map.queryRenderedFeatures(e.point, {
+        layers: ['measure-points']
+        });
+        // UI indicator for clicking/hovering a point on the map
+        map.getCanvas().style.cursor = features.length
+        ? 'pointer'
+        : 'crosshair';
+        });
+
+    </script>
+  </body>
+</html>
